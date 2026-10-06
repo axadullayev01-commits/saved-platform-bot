@@ -10,7 +10,7 @@ def _generate_caption(title: str, description: str) -> str:
     prompt = f"Title: {title}\nDescription: {description}\nGenerate a creative, engaging 2-line Telegram caption with relevant emojis based on the title. Only output the caption."
     try:
         response = client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-1.5-flash',
             contents=prompt,
         )
         return response.text.strip()
