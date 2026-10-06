@@ -35,15 +35,22 @@ async def handle_url(message: Message):
         
         media_file = FSInputFile(file_path)
         
+        # Generate a short ID for the callback data
+        short_id = str(uuid.uuid4())[:8]
+        MEDIA_CACHE[short_id] = {"url": url, "desc": desc}
+        
         if media_info["type"] == "photo":
-            await message.answer_photo(photo=media_file, caption=caption)
-        else:
-            # Generate a short ID for the callback data
-            short_id = str(uuid.uuid4())[:8]
-            MEDIA_CACHE[short_id] = url
-            
             builder = InlineKeyboardBuilder()
-            builder.button(text="🎵 Musiqasini yuklab olish", callback_data=f"audio|{short_id}")
+            if desc and str(desc).strip() and str(desc).strip() != "None":
+                builder.button(text="📝 Asl izohni ko'rish", callback_data=f"desc|{short_id}")
+            
+            await message.answer_photo(photo=media_file, caption=caption, reply_markup=builder.as_markup() if desc else None)
+        else:
+            builder = InlineKeyboardBuilder()
+            builder.button(text="🎧 Musiqasini yuklab olish", callback_data=f"audio|{short_id}")
+            if desc and str(desc).strip() and str(desc).strip() != "None":
+                builder.button(text="📝 Asl izohni ko'rish", callback_data=f"desc|{short_id}")
+            builder.adjust(1)
             await message.answer_video(video=media_file, caption=caption, reply_markup=builder.as_markup())
             
     except Exception as e:
@@ -56,13 +63,15 @@ async def handle_url(message: Message):
 @router.callback_query(F.data.startswith("audio|"))
 async def handle_audio_extraction(callback: CallbackQuery):
     short_id = callback.data.split("|", 1)[1]
-    url = MEDIA_CACHE.get(short_id)
+    cache_data = MEDIA_CACHE.get(short_id)
     
-    if not url:
-        await callback.answer("❌ Kechirasiz, bu havola muddati o'tgan yoki topilmadi.", show_alert=True)
+    if not cache_data:
+        await callback.answer("⏳ Kechirasiz, bu havola muddati o'tgan yoki topilmadi.", show_alert=True)
         return
         
-    await callback.message.answer("⏳ Audio ajratib olinmoqda...")
+    url = cache_data["url"]
+    
+    await callback.message.answer("🎧 Audio ajratib olinmoqda...")
     await callback.answer()
     
     file_path = None
@@ -71,9 +80,25 @@ async def handle_audio_extraction(callback: CallbackQuery):
         file_path = media_info["file_path"]
         
         audio_file = FSInputFile(file_path)
-        await callback.message.answer_audio(audio=audio_file, caption="🎵 Audio ajratildi.")
+        await callback.message.answer_audio(audio=audio_file, caption="🎧 Audio ajratildi.")
     except Exception as e:
         await callback.message.answer(f"❌ Audioni ajratishda xatolik: {str(e)}")
     finally:
         if file_path and os.path.exists(file_path):
             os.remove(file_path)
+
+@router.callback_query(F.data.startswith("desc|"))
+async def handle_description(callback: CallbackQuery):
+    short_id = callback.data.split("|", 1)[1]
+    cache_data = MEDIA_CACHE.get(short_id)
+    
+    if not cache_data:
+        await callback.answer("⏳ Kechirasiz, bu havola muddati o'tgan yoki topilmadi.", show_alert=True)
+        return
+        
+    desc = cache_data.get("desc", "Izoh topilmadi.")
+    if len(desc) > 4000:
+        desc = desc[:4000] + "..."
+        
+    await callback.message.reply(f"📝 <b>Asl izoh:</b>\n\n{desc}", parse_mode="HTML", disable_web_page_preview=True)
+    await callback.answer()
