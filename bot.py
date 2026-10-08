@@ -7,7 +7,9 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from utils.config import BOT_TOKEN
+from services.db import init_db
 from handlers.media import router as media_router
+from handlers.admin import router as admin_router
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -24,6 +26,9 @@ def run_dummy_server():
     server.serve_forever()
 
 async def main():
+    # Initialize Database
+    init_db()
+    
     # Start dummy web server for Render health check
     threading.Thread(target=run_dummy_server, daemon=True).start()
     
@@ -31,6 +36,7 @@ async def main():
     dp = Dispatcher()
     
     # Include routers
+    dp.include_router(admin_router)
     dp.include_router(media_router)
     
     # Start polling

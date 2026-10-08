@@ -7,6 +7,7 @@ from aiogram.filters import CommandStart
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from services.downloader import download_media_async
 from services.gemini import generate_caption_async
+from services.db import add_user, log_download
 
 router = Router()
 
@@ -17,6 +18,11 @@ MEDIA_CACHE = {}
 
 @router.message(CommandStart())
 async def start_cmd(message: Message):
+    add_user(
+        user_id=message.from_user.id, 
+        username=message.from_user.username, 
+        full_name=message.from_user.full_name
+    )
     await message.answer("Salom! Menga Instagram, TikTok, YouTube (Shorts), Pinterest yoki boshqa platformadan link yuboring, men uni yuklab beraman.")
 
 @router.message(F.text.regexp(URL_PATTERN))
@@ -27,6 +33,7 @@ async def handle_url(message: Message):
     file_path = None
     try:
         media_info = await download_media_async(url)
+        log_download(message.from_user.id, url)
         file_path = media_info["file_path"]
         title = media_info.get("title", "")
         desc = media_info.get("description", "")
