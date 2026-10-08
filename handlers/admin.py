@@ -10,11 +10,14 @@ router = Router()
 def is_admin(user_id):
     if not ADMIN_ID:
         return False
-    return str(user_id) == str(ADMIN_ID)
+    # Ruxsat berilgan adminlar ro'yxatini vergul orqali ajratib tekshiramiz
+    admin_ids = [i.strip() for i in str(ADMIN_ID).split(',')]
+    return str(user_id) in admin_ids
 
 @router.message(Command("admin"))
 async def admin_panel(message: Message):
     if not is_admin(message.from_user.id):
+        await message.reply(f"Siz admin emassiz!\nSizning ID raqamingiz: <code>{message.from_user.id}</code>\nUshbu ID ni .env faylidagi ADMIN_ID ga qo'shing.", parse_mode="HTML")
         return
         
     stats = get_stats()
