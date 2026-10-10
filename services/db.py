@@ -74,3 +74,24 @@ def get_stats():
         "total_downloads": total_downloads,
         "platform_stats": platform_stats
     }
+
+def get_all_users():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT user_id, username, full_name, joined_at FROM users ORDER BY joined_at DESC")
+    users = cursor.fetchall()
+    conn.close()
+    return users
+
+def get_recent_downloads(limit=100):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT d.platform, d.downloaded_at, u.username, u.full_name 
+        FROM downloads d 
+        LEFT JOIN users u ON d.user_id = u.user_id 
+        ORDER BY d.downloaded_at DESC LIMIT ?
+    """, (limit,))
+    downloads = cursor.fetchall()
+    conn.close()
+    return downloads

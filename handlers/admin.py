@@ -64,3 +64,22 @@ async def refresh_admin_panel(callback: CallbackQuery):
         pass # Message content might not have changed
         
     await callback.answer("Yangilandi!")
+
+import os
+from aiogram.types import WebAppInfo
+
+@router.message(Command("web"))
+async def web_admin_panel(message: Message):
+    if not is_admin(message.from_user.id):
+        await message.reply("Siz admin emassiz!")
+        return
+        
+    web_url = os.environ.get("WEBAPP_URL")
+    if not web_url:
+        await message.reply("⚠️ WebApp URL topilmadi. Iltimos, serveringizda (masalan, Render) yoki .env faylida WEBAPP_URL ni kiriting.\nMasalan: <code>WEBAPP_URL=https://sizning-botingiz.onrender.com/admin-dashboard</code>", parse_mode="HTML")
+        return
+        
+    builder = InlineKeyboardBuilder()
+    builder.button(text="🌐 Web Panelni Ochish", web_app=WebAppInfo(url=web_url))
+    
+    await message.answer("Barcha ma'lumotlarni ko'rish uchun quyidagi tugmani bosing:", reply_markup=builder.as_markup())
